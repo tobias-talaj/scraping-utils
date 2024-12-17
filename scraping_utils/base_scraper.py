@@ -7,8 +7,8 @@ from abc import ABC, abstractmethod
 from lxml import html
 from curl_cffi import requests
 
-from core import setup_logging, retry
-from mongodb import MongoDBConnection
+from scraping_utils.core import setup_logging, retry
+from scraping_utils.mongodb import MongoDBConnection
 
 
 @dataclass
