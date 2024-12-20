@@ -6,7 +6,7 @@ import traceback
 from pathlib import Path
 from datetime import datetime, timedelta
 
-from dotenv import load_dotenv
+from prefect import get_run_context
 from pymongo import MongoClient
 from pymongo.errors import OperationFailure, PyMongoError
 
@@ -30,15 +30,27 @@ class MongoDBConnection:
         return cls._instances[key]
 
     def _initialize(self, collection_name, db_name, logger):
-        env_path = Path.cwd() / '.env'
-        load_dotenv(env_path)
-        
-        self.uri = os.getenv('MONGODB_URI')
-        if not self.uri:
-            raise ValueError(
-                "MONGODB_URI environment variable not found. "
-                "Please create a .env file in your project root with MONGODB_URI=your_connection_string"
-            )
+        try:
+            context = get_run_context()
+            self.uri = context.get_block("secret/mongodb-uri")
+            if not self.uri:
+                raise ValueError(
+                    "MongoDB URI not found in Prefect blocks. "
+                    "Please create a secret block named 'mongodb-uri' with your connection string"
+                )
+        except Exception as e:
+            env_path = Path.cwd() / '.env'
+            if env_path.exists():
+                from dotenv import load_dotenv
+                load_dotenv(env_path)
+            
+            self.uri = os.getenv('MONGODB_URI')
+            if not self.uri:
+                raise ValueError(
+                    "MONGODB_URI not found. Either set up a Prefect secret block 'mongodb-uri' "
+                    "or create a .env file with MONGODB_URI=your_connection_string"
+                )
+
         self._client = None
         self.collection_name = collection_name
         self.db_name = db_name
