@@ -6,7 +6,7 @@ import traceback
 from pathlib import Path
 from datetime import datetime, timedelta
 
-from prefect import get_run_context
+from prefect.blocks.system import Secret
 from pymongo import MongoClient
 from pymongo.errors import OperationFailure, PyMongoError
 
@@ -31,12 +31,12 @@ class MongoDBConnection:
 
     def _initialize(self, collection_name, db_name, logger):
         try:
-            context = get_run_context()
-            self.uri = context.get_block("secret/mongodb-uri")
+            mongodb_block = Secret.load("mongodb-uri")
+            self.uri = mongodb_block.get()
             if not self.uri:
                 raise ValueError(
                     "MongoDB URI not found in Prefect blocks. "
-                    "Please create a secret block named 'mongodb-uri' with your connection string"
+                    "Please check the 'mongodb-uri' secret block"
                 )
         except Exception as e:
             env_path = Path.cwd() / '.env'
