@@ -132,7 +132,7 @@ class JobBoardBaseScraper(ABC):
     def main(self):
         db = None
         try:
-            db = MongoDBConnection(self.name, 'job_ads', self.logger)
+            db = MongoDBConnection(self.name, 'job_ads', 'mongodb-jobads-uri', self.logger)
             self.recent_postings = db.get_recent_urls()
 
             with requests.Session() as session:

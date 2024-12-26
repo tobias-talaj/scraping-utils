@@ -19,24 +19,24 @@ class MongoDBConnection:
     _instances = {}
     _lock = threading.Lock()
 
-    def __new__(cls, collection_name, db_name='job_ads', logger=None):
+    def __new__(cls, collection_name, db_name, db_uri, logger=None):
         key = (collection_name, db_name)
         with cls._lock:
             if key not in cls._instances:
                 instance = super().__new__(cls)
-                instance._initialize(collection_name, db_name, logger)
+                instance._initialize(collection_name, db_name, db_uri, logger)
                 cls._instances[key] = instance
                 instance.logger.info(f"Created MongoDBConnection for {key}")
         return cls._instances[key]
 
-    def _initialize(self, collection_name, db_name, logger):
+    def _initialize(self, collection_name, db_name, db_uri, logger):
         try:
-            mongodb_block = Secret.load("mongodb-uri")
+            mongodb_block = Secret.load(db_uri)
             self.uri = mongodb_block.get()
             if not self.uri:
                 raise ValueError(
                     "MongoDB URI not found in Prefect blocks. "
-                    "Please check the 'mongodb-uri' secret block"
+                    f"Please check the '{db_uri}' secret block"
                 )
         except Exception as e:
             env_path = Path.cwd() / '.env'
@@ -47,7 +47,7 @@ class MongoDBConnection:
             self.uri = os.getenv('MONGODB_URI')
             if not self.uri:
                 raise ValueError(
-                    "MONGODB_URI not found. Either set up a Prefect secret block 'mongodb-uri' "
+                    f"MONGODB_URI not found. Either set up a Prefect secret block '{db_uri}' "
                     "or create a .env file with MONGODB_URI=your_connection_string"
                 )
 
