@@ -3,13 +3,18 @@ import string
 import random
 import logging
 import traceback
-from lxml import etree
 from pathlib import Path
 from functools import wraps
 from logging.handlers import RotatingFileHandler
 
+from lxml import etree
+from prefect import get_run_logger
 
-def setup_logging(log_file_name='scraper.log', log_level=logging.INFO):
+
+def setup_logging(log_file_name='scraper.log', log_level=logging.INFO, use_prefect=False):
+    if use_prefect:
+        return get_run_logger()
+    
     log_dir = Path('logs')
     log_dir.mkdir(exist_ok=True)
     log_file_path = log_dir / log_file_name

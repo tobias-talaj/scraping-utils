@@ -20,6 +20,7 @@ class ScraperConfig:
     posting_validation_xpath: str
     page_url: str
     posting_url: str
+    use_prefect_logging: bool = False
 
 
 class JobBoardBaseScraper(ABC):
@@ -31,7 +32,7 @@ class JobBoardBaseScraper(ABC):
         self.posting_validation_xpath = config.posting_validation_xpath
         self.page_url = config.page_url
         self.posting_url = config.posting_url
-        self.logger = setup_logging(f"{config.name}.log")
+        self.logger = setup_logging(f"{config.name}.log", use_prefect=config.use_prefect_logging)
         self.recent_postings = []
 
     def get_logger(self):
