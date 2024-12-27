@@ -21,6 +21,7 @@ class ScraperConfig:
     page_url: str
     posting_url: str
     use_prefect: bool = False
+    proxy_url: str
 
 
 class JobBoardBaseScraper(ABC):
