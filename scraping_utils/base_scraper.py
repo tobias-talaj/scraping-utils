@@ -33,7 +33,7 @@ class JobBoardBaseScraper(ABC):
         self.page_url = config.page_url
         self.posting_url = config.posting_url
         self.use_prefect = config.use_prefect
-        self.logger = setup_logging(f"{config.name}.log", self.use_prefect)
+        self.logger = setup_logging(log_file_name=f"{config.name}.log", use_prefect=self.use_prefect)
         self.recent_postings = []
 
     def get_logger(self):
