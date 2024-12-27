@@ -33,6 +33,7 @@ class JobBoardBaseScraper(ABC):
         self.page_url = config.page_url
         self.posting_url = config.posting_url
         self.use_prefect = config.use_prefect
+        self.proxy_url = config.proxy_url
         self.logger = setup_logging(log_file_name=f"{config.name}.log", use_prefect=self.use_prefect)
         self.recent_postings = []
 
@@ -54,7 +55,7 @@ class JobBoardBaseScraper(ABC):
         self.logger.info(f"Visiting page {page_url}")
         if referer:
             session.headers.update({"referer": referer})
-        response = session.get(page_url, impersonate="chrome")
+        response = session.get(page_url, impersonate="chrome", proxies={"http": self.proxy_url, "https": self.proxy_url})
         tree = html.fromstring(response.content)
         hrefs = set(tree.xpath(self.jobs_links_xpath))
         self.logger.info(f"Fetched {len(hrefs)} job links\nexample: {next(iter(hrefs)) if hrefs else 'None'}")
@@ -64,7 +65,7 @@ class JobBoardBaseScraper(ABC):
     def get_job_posting_tree(self, session, posting_url, referer):
         if referer:
             session.headers.update({"referer": referer})
-        response = session.get(posting_url, impersonate="chrome")
+        response = session.get(posting_url, impersonate="chrome", proxies={"http": self.proxy_url, "https": self.proxy_url})
         tree = html.fromstring(response.content)
         if not tree.xpath(self.posting_validation_xpath):
             raise ValueError("Page has unexpected format or hasn't loaded")
