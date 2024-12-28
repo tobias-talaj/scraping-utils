@@ -47,11 +47,14 @@ class JobBoardBaseScraper(ABC):
     def check_proxies(self, proxy_urls):
         ok_proxies = []
         for proxy_url in proxy_urls:
-            response = requests.get(self.main_url, impersonate='chrome', proxies={"http": proxy_url, "https": proxy_url})
-            if response.status_code == 200:
-                ok_proxies.append(proxy_url)
-            else:
-                self.logger.error(f"Proxy {proxy_url} busted on {self.main_url}")
+            try:
+                response = requests.get(self.main_url, impersonate='chrome', proxies={"http": proxy_url, "https": proxy_url})
+                if response.status_code == 200:
+                    ok_proxies.append(proxy_url)
+                else:
+                    self.logger.error(f"Proxy {proxy_url} busted on {self.main_url}")
+            except Exception as e:
+                self.logger.error(f"Proxy {proxy_url} busted or invalid format, got following error:\n{e}")
         return ok_proxies
 
     @abstractmethod
