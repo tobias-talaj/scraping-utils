@@ -49,7 +49,7 @@ class JobBoardBaseScraper(ABC):
             if response.status_code == 200:
                 ok_proxies.append(proxy_url)
             else:
-                self.logger.error(f"Proxy {proxy_url} busted on {self.page_url}")
+                self.logger.error(f"Proxy {proxy_url} busted on {self.main_url}")
         return ok_proxies
 
     @abstractmethod
