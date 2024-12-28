@@ -23,6 +23,7 @@ class ScraperConfig:
     posting_url: str
     proxy_urls: list[str]
     use_prefect: bool = False
+    wait_times: tuple = (4, 8)
 
 
 class JobBoardBaseScraper(ABC):
@@ -36,6 +37,7 @@ class JobBoardBaseScraper(ABC):
         self.posting_url = config.posting_url
         self.proxy_urls = config.proxy_urls
         self.use_prefect = config.use_prefect
+        self.wait_times = config.wait_times
         self.logger = setup_logging(log_file_name=f"{config.name}.log", use_prefect=self.use_prefect)
         self.recent_postings = []
 
@@ -110,7 +112,7 @@ class JobBoardBaseScraper(ABC):
         
         db.insert_to_mongodb(job_details.model_dump())
         self.recent_postings.append(posting_url)
-        time.sleep(random.uniform(2, 5))
+        time.sleep(random.uniform(*self.wait_times))
         return True
 
     def process_page(self, db, session, proxy_url, category, page):
@@ -136,7 +138,7 @@ class JobBoardBaseScraper(ABC):
                     unsuccessful = 0
             
             self.logger.info(f"Completed page {page} for category {category}")
-            time.sleep(random.uniform(2, 5))
+            time.sleep(random.uniform(*self.wait_times))
             return True
         except Exception as e:
             self.logger.error(f"Error processing page {page} of category {category}: {str(e)}")
@@ -150,7 +152,7 @@ class JobBoardBaseScraper(ABC):
             while self.process_page(db, session, proxy_url, category, page):
                 page += 1
             self.logger.info(f"Completed scrape for category: {category}")
-            time.sleep(random.uniform(2, 5))
+            time.sleep(random.uniform(*self.wait_times))
 
     def main(self):
         db = None
