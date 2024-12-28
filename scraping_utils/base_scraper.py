@@ -130,12 +130,11 @@ class JobBoardBaseScraper(ABC):
             for job_link in jobs_links:
                 if not self.process_job(db, session, proxy_url, job_link, referer=page_url):
                     unsuccessful += 1
-                    if unsuccessful > 2:
-                        self.logger.error(f"Couldn't fetch job posting {unsuccessful} times in a row")
+                    if unsuccessful > 4:
+                        self.logger.error(f"Couldn't fetch job posting {unsuccessful} times")
                         return False
-                    time.sleep(random.uniform(5, 10))
-                else:
-                    unsuccessful = 0
+                    wait_a, wait_b = self.wait_times
+                    time.sleep(random.uniform(wait_a*2, wait_b*2))
             
             self.logger.info(f"Completed page {page} for category {category}")
             time.sleep(random.uniform(*self.wait_times))
