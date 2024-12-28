@@ -45,7 +45,7 @@ class JobBoardBaseScraper(ABC):
     def check_proxies(self, proxy_urls):
         ok_proxies = []
         for proxy_url in proxy_urls:
-            response = requests.get(self.page_url, impersonate='chrome', proxies={"http": proxy_url, "https": proxy_url})
+            response = requests.get(self.main_url, impersonate='chrome', proxies={"http": proxy_url, "https": proxy_url})
             if response.status_code == 200:
                 ok_proxies.append(proxy_url)
             else:
@@ -144,7 +144,7 @@ class JobBoardBaseScraper(ABC):
             return False
 
     def process_category(self, db, proxy_url, category):
-        self.logger.info(f"Starting scrape for category: {category}")
+        self.logger.info(f"Starting scraping for category {category} with {proxy_url} proxy")
         with requests.Session() as session:
             page = 1
             while self.process_page(db, session, proxy_url, category, page):
