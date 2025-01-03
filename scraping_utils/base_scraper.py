@@ -85,8 +85,8 @@ class JobBoardBaseScraper(ABC):
         self.config = config
         self.logger = setup_logging(log_file_name=f"{config.name}.log", use_prefect=self.config.use_prefect)
         self.metrics = ScrapingMetrics()
-        self.recent_postings: set[str] = set()
-        self.failures: int = 0
+        self.recent_postings = set()
+        self.failures = 0
         self._proxy_cycle = cycle(self.check_proxies(self.config.proxy_urls))
 
     def get_logger(self):
