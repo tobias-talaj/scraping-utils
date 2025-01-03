@@ -49,8 +49,8 @@ Example usage:
     #     return super().process_page(db, session, proxy_url, category, page)
     
     # @flow(flow_run_name='{category}')
-    # def process_category(self, db, proxy_url, category):
-    #     return super().process_category(db, proxy_url, category)
+    # def process_category(self, db, category):
+    #     return super().process_category(db, category)
 
     # Configure and run your scraper
     # @flow(my-scraper)  # for running with Prefect
@@ -108,7 +108,7 @@ class ScraperConfig(BaseModel):
     page_url: str
     posting_url: str
     proxy_urls: list[str]
-    use_prefect: bool = False
+    use_prefect: bool = True
     wait_times: tuple[int, int] = (4, 8)
     skip_after_failed: int = 5
 
