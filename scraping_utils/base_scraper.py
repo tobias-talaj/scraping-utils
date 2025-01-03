@@ -1,3 +1,61 @@
+"""
+Base scraper module for creating job board scrapers.
+
+Example usage:
+
+    from pydantic import BaseModel
+    from datetime import datetime
+    
+    # Define your job posting model (the data you'll get for each one)
+    class JobPosting(BaseModel):
+        url: str
+        title: str
+        company: str
+        location: str
+        posted_date: datetime
+        description: str
+
+    # Create your scraper by inheriting from JobBoardBaseScraper
+    class MyJobBoardScraper(JobBoardBaseScraper):
+        def fetch_job_details(self, posting_tree, posting_url):
+            # Implement parsing logic for a single job posting
+            return JobPosting(
+                url=posting_url,
+                title=posting_tree.xpath('//h1/text()')[0],
+                company=posting_tree.xpath('//div[@class="company"]/text()')[0],
+                location=posting_tree.xpath('//div[@class="location"]/text()')[0],
+                posted_date=datetime.now(),
+                description=posting_tree.xpath('//div[@class="description"]//text()')[0]
+            )
+
+    # Configure and run your scraper
+    config = ScraperConfig(
+        name="my_job_board",
+        main_url="https://example.com",
+        categories=("engineering", "sales", "marketing"),
+        jobs_links_xpath="//div[@class='job-card']//a/@href",
+        posting_validation_xpath="//div[@class='job-details']",
+        page_url="https://example.com/jobs/{category}?page={page}",
+        posting_url="https://example.com{posting_link}",
+        proxy_urls=[
+            "http://proxy1.example.com:8080",
+            "http://proxy2.example.com:8080"
+        ]
+    )
+
+    # Initialize and run the scraper
+    scraper = MyJobBoardScraper(config)
+    scraper.main()
+
+The base scraper handles:
+- Proxy rotation and validation
+- Session management
+- Error handling and retries
+- Metrics collection
+- Rate limiting
+- Database connections
+- Logging
+"""
 import time
 import random
 import traceback
