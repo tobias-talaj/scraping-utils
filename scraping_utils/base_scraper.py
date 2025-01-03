@@ -3,8 +3,14 @@ Base scraper module for creating job board scrapers.
 
 Example usage:
 
-    from pydantic import BaseModel
+    from typing import Optional
     from datetime import datetime
+
+    from prefect import flow, task
+    from pydantic import BaseModel
+
+    from scraping_utils.base_scraper import JobBoardBaseScraper, ScraperConfig
+    
     
     # Define your job posting model (the data you'll get for each one)
     class JobPosting(BaseModel):
@@ -14,6 +20,8 @@ Example usage:
         location: str
         posted_date: datetime
         description: str
+
+    CATEGORIES = ()  # List all the categories as they appear in URLs
 
     # Create your scraper by inheriting from JobBoardBaseScraper
     class MyJobBoardScraper(JobBoardBaseScraper):
@@ -28,24 +36,37 @@ Example usage:
                 description=posting_tree.xpath('//div[@class="description"]//text()')[0]
             )
 
-    # Configure and run your scraper
-    config = ScraperConfig(
-        name="my_job_board",
-        main_url="https://example.com",
-        categories=("engineering", "sales", "marketing"),
-        jobs_links_xpath="//div[@class='job-card']//a/@href",
-        posting_validation_xpath="//div[@class='job-details']",
-        page_url="https://example.com/jobs/{category}?page={page}",
-        posting_url="https://example.com{posting_link}",
-        proxy_urls=[
-            "http://proxy1.example.com:8080",
-            "http://proxy2.example.com:8080"
-        ]
-    )
+    # Overload process methods to manage it with Prefect
+    # @task(task_run_name='{job_link}', persist_result=False)
+    # def process_job(self, db, session, proxy_url, job_link, referer):
+    #     return super().process_job(db, session, proxy_url, job_link, referer)
+    
+    # @flow(flow_run_name='{category} - {page}')
+    # def process_page(self, db, session, proxy_url, category, page):
+    #     return super().process_page(db, session, proxy_url, category, page)
+    
+    # @flow(flow_run_name='{category}')
+    # def process_category(self, db, proxy_url, category):
+    #     return super().process_category(db, proxy_url, category)
 
-    # Initialize and run the scraper
-    scraper = MyJobBoardScraper(config)
-    scraper.main()
+    # Configure and run your scraper
+    # @flow(my-scraper)  # for running with Prefect
+    def run_my_scraper(categories: list[str], proxy_urls: list[str]):
+        config = ScraperConfig(
+            name="my_job_board",
+            main_url="https://example.com",
+            categories=categories,
+            jobs_links_xpath="//div[@class='job-card']//a/@href",
+            posting_validation_xpath="//div[@class='job-details']",
+            page_url="https://example.com/jobs/{category}?page={page}",
+            posting_url="https://example.com{posting_link}",
+            proxy_urls=proxy_urls
+        )
+        scraper = MyJobBoardScraper(config)
+        scraper.main()
+
+    if __name__ == "__main__":
+        run_my_scraper(CATEGORIES)
 
 The base scraper handles:
 - Proxy rotation and validation
