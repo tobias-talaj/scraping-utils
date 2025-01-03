@@ -11,7 +11,7 @@ Example usage:
 
     from scraping_utils.base_scraper import JobBoardBaseScraper, ScraperConfig
     
-    
+
     # Define your job posting model (the data you'll get for each one)
     class JobPosting(BaseModel):
         url: str
@@ -25,6 +25,9 @@ Example usage:
 
     # Create your scraper by inheriting from JobBoardBaseScraper
     class MyJobBoardScraper(JobBoardBaseScraper):
+        def __init__(self, config):
+            super().__init__(config)
+
         def fetch_job_details(self, posting_tree, posting_url):
             # Implement parsing logic for a single job posting
             return JobPosting(
@@ -66,7 +69,7 @@ Example usage:
         scraper.main()
 
     if __name__ == "__main__":
-        run_my_scraper(CATEGORIES)
+        run_my_scraper(CATEGORIES, ['http://user:pass@ip:port'])
 
 The base scraper handles:
 - Proxy rotation and validation
@@ -369,14 +372,18 @@ class JobBoardBaseScraper(ABC):
                 for category in self.config.categories:
                     self.process_category(db, category)
                 
-                self.logger.info(f"Scraped {len(self.recent_postings) - already_scraped} postings")
+                new_postings = len(self.recent_postings) - already_scraped
+                self.logger.info(f"Scraped {new_postings} postings")
                 self.logger.info("Metrics summary:")
                 self.logger.info(self.metrics.get_summary())
+
+                if new_postings == 0:
+                    raise Exception("No new postings were scraped. This likely indicates a problem with the scraper.")
                 
         except Exception as e:
             self.logger.error(f"An unexpected error occurred: {str(e)}")
-            self.logger.error(traceback.format_exc())
             self.metrics.add_error(e)
-            
+            raise
+                
         finally:
             self.logger.info("Scraping ended")
