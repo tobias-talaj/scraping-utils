@@ -85,6 +85,7 @@ import random
 import traceback
 from itertools import cycle
 from datetime import datetime
+from urllib.parse import quote
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -214,10 +215,12 @@ class JobBoardBaseScraper(ABC):
         ...
 
     def construct_page_url(self, category: str, page: int) -> str:
-        return self.config.page_url.format(category=category, page=page)
+        encoded_category = quote(category, safe=':/?=&')
+        return self.config.page_url.format(category=encoded_category, page=page)
 
     def construct_job_posting_url(self, posting_url: str) -> str:
-        return self.config.posting_url.format(posting_link=posting_url)
+        encoded_url = quote(posting_url, safe=':/?=&')
+        return self.config.posting_url.format(posting_link=encoded_url)
 
     @retry(max_retries=2, delay=5, logger_func=get_logger)
     def fetch_jobs_links(
