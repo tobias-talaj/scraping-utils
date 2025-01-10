@@ -1,13 +1,25 @@
 import time
 import json
-import random
+from typing import Callable
 
 import pyautogui
 
 from scraping_utils.mitm_proxy import MitmProxyController
 
 
-def extract_credentials(keys: list, sequence: function) -> dict: 
+def cast_to_dict(input):
+    if isinstance(input, list):
+        input = input[0]
+    if isinstance(input, dict):
+        return input
+    try:
+        input = json.loads(input)
+        return input
+    except Exception:
+        return {}
+
+
+def extract_credentials(browser: str, keys: list, sequence: Callable) -> dict: 
     proxy_controller = MitmProxyController(name='monster_co_uk', host='127.0.0.1', port=8080)
     proxy_controller.start()
 
@@ -17,30 +29,24 @@ def extract_credentials(keys: list, sequence: function) -> dict:
         pyautogui.write('terminal')
         pyautogui.press('enter')
         time.sleep(1)
-        pyautogui.write('chromium --proxy-server="http://127.0.0.1:8080"')
+        pyautogui.write(f'{browser} --proxy-server="http://127.0.0.1:8080"')
         pyautogui.press('enter')
         pyautogui.hotkey('ctrl', 'l')
-        time.sleep(1)
-        pyautogui.write('https://www.monster.co.uk/')
-        time.sleep(1)
-        pyautogui.press('enter')
-        time.sleep(random.uniform(4, 8))
 
         sequence()
 
-        time.sleep(35)
+        time.sleep(5)
+        pyautogui.hotkey('alt', 'f4')
 
         credentials = {}
         matching_requests = proxy_controller.find_requests_with_keywords(keys)
         for req in matching_requests:
-            headers = req.get('headers')
-            payload = req.get('payload')
-            if not isinstance(payload, dict):
-                try:
-                    payload = json.loads(payload)
-                except json.JSONDecodeError:
-                    print('payload is not valid json')
-                    payload = {}
+            headers = cast_to_dict(req.get('headers'))
+            payload = cast_to_dict(req.get('payload'))
+            headers = {k.lower(): v for k, v in headers.items()}
+            payload = {k.lower(): v for k, v in payload.items()}
+            keys = [k.lower() for k in keys]
+
             for k in keys:
                 if k in payload:
                     credentials[k] = payload[k]
@@ -50,3 +56,4 @@ def extract_credentials(keys: list, sequence: function) -> dict:
 
     finally:
         proxy_controller.stop()
+        pyautogui.hotkey('alt', 'f4')

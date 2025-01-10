@@ -119,4 +119,4 @@ class MitmProxyController:
     
     def word_in_string(self, word: str, text: str) -> bool:
         pattern = fr'\b{re.escape(word)}\b'
-        return bool(re.search(pattern, text))
+        return bool(re.search(pattern, text, re.IGNORECASE))
