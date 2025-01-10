@@ -8,6 +8,7 @@ from .core import (
 from .mongodb import MongoDBConnection
 from .base_scraper import JobBoardBaseScraper, ScraperConfig
 from .mitm_proxy import MitmProxyController
+from .credentials_extractor import extract_credentials
 
 __all__ = [
     'setup_logging',
@@ -18,5 +19,6 @@ __all__ = [
     'MongoDBConnection',
     'JobBoardBaseScraper',
     'ScraperConfig',
-    'MitmProxyController'
+    'MitmProxyController',
+    'extract_credentials'
 ]

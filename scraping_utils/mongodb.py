@@ -85,7 +85,7 @@ class MongoDBConnection:
             self.logger.error(f"An error occurred while inserting documents: {traceback.format_exc()}")
             sys.exit(1)
 
-    def get_recent_urls(self, days=7):
+    def get_recent_urls(self, days=30):
         self.logger.debug(f"Retrieving recent URLs from {self.collection_name} collection")
         try:
             db = self.get_database()
