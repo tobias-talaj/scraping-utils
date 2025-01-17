@@ -6,7 +6,7 @@ from .core_utils import (
 )
 from .mongodb_client import MongoDBConnection
 from .base_scraper import CurlCffiJobBoardBaseScraper, ScraperConfig, ScrapingMetrics
-from .request_interceptor import MitmProxyController, extract_credentials
+from .request_interceptor import MitmProxyController#, extract_credentials
 
 __all__ = [
     'setup_logging',
@@ -16,7 +16,7 @@ __all__ = [
     'CurlCffiJobBoardBaseScraper',
     'ScraperConfig',
     'MitmProxyController',
-    'extract_credentials',
+    # 'extract_credentials',
     'check_proxies',
     'ScrapingMetrics'
 ]
