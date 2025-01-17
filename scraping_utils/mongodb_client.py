@@ -4,10 +4,14 @@ import logging
 import threading
 import traceback
 from pathlib import Path
+from logging import Logger
+from typing import Optional
 from datetime import datetime, timedelta
 
 from prefect.blocks.system import Secret
+from bson.objectid import ObjectId
 from pymongo import MongoClient
+from pymongo.database import Database
 from pymongo.errors import OperationFailure, PyMongoError
 
 import warnings
@@ -19,7 +23,13 @@ class MongoDBConnection:
     _instances = {}
     _lock = threading.Lock()
 
-    def __new__(cls, collection_name, db_name, db_uri, logger=None):
+    def __new__(
+        cls,
+        collection_name: str,
+        db_name: str,
+        db_uri: str,
+        logger: Optional[Logger] = None
+    ) -> 'MongoDBConnection':
         key = (collection_name, db_name)
         with cls._lock:
             if key not in cls._instances:
@@ -29,7 +39,13 @@ class MongoDBConnection:
                 instance.logger.info(f"Created MongoDBConnection for {key}")
         return cls._instances[key]
 
-    def _initialize(self, collection_name, db_name, db_uri, logger):
+    def _initialize(
+        self,
+        collection_name: str,
+        db_name: str,
+        db_uri: str,
+        logger: Optional[Logger]
+    ) -> None:
         try:
             mongodb_block = Secret.load(db_uri)
             self.uri = mongodb_block.get()
@@ -56,13 +72,16 @@ class MongoDBConnection:
         self.db_name = db_name
         self.logger = logger or logging.getLogger(__name__)
 
-    def get_database(self):
+    def get_database(self) -> Database:
         with self._lock:
             if self._client is None:
                 self._client = MongoClient(self.uri)
         return self._client[self.db_name]
 
-    def insert_to_mongodb(self, documents):
+    def insert_to_mongodb(
+        self,
+        documents: dict | list[dict]
+    ) -> ObjectId | list[ObjectId]:
         self.logger.debug(f"Insering documents into {self.collection_name}")
         try:
             db = self.get_database()
@@ -85,7 +104,7 @@ class MongoDBConnection:
             self.logger.error(f"An error occurred while inserting documents: {traceback.format_exc()}")
             sys.exit(1)
 
-    def get_recent_urls(self, days=30):
+    def get_recent_urls(self, days: int = 30) -> list[str]:
         self.logger.debug(f"Retrieving recent URLs from {self.collection_name} collection")
         try:
             db = self.get_database()
@@ -103,7 +122,7 @@ class MongoDBConnection:
             self.logger.error(f"An error occurred while retrieving recent URLs: {traceback.format_exc()}")
             return []
 
-    def close_connection(self):
+    def close_connection(self) -> None:
         with self._lock:
             if self._client is not None:
                 self._client.close()

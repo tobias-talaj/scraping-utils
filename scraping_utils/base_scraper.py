@@ -24,7 +24,7 @@ Example usage:
     CATEGORIES = ()  # List all the categories as they appear in URLs
 
     # Create your scraper by inheriting from JobBoardBaseScraper
-    class MyJobBoardScraper(JobBoardBaseScraper):
+    class MyJobBoardScraper(CurlCffiJobBoardBaseScraper):
         def __init__(self, config):
             super().__init__(config)
 
@@ -83,6 +83,7 @@ The base scraper handles:
 import time
 import random
 import traceback
+from logging import Logger
 from itertools import cycle
 from datetime import datetime
 from urllib.parse import quote
@@ -96,8 +97,8 @@ from lxml.html import HtmlElement
 from curl_cffi import requests
 from pydantic import BaseModel, field_validator
 
-from scraping_utils.core import setup_logging, retry
-from scraping_utils.mongodb import MongoDBConnection
+from scraping_utils.mongodb_client import MongoDBConnection
+from scraping_utils.core_utils import setup_logging, retry, check_proxies
 
 
 class ScraperConfig(BaseModel):
@@ -163,16 +164,21 @@ class ScrapingMetrics:
         self.errors_by_type[error_type] = self.errors_by_type.get(error_type, 0) + 1
 
 
-class JobBoardBaseScraper(ABC):
+class CurlCffiJobBoardBaseScraper(ABC):
     def __init__(self, config: ScraperConfig):
         self.config = config
         self.logger = setup_logging(log_file_name=f"{config.name}.log", use_prefect=self.config.use_prefect)
         self.metrics = ScrapingMetrics()
         self.recent_postings = set()
         self.failures = 0
-        self._proxy_cycle = cycle(self.check_proxies(self.config.proxy_urls))
+        self._proxy_cycle = cycle(check_proxies(
+            self.config.main_url,
+            self.config.proxy_urls,
+            self.logger,
+            self.metrics
+        ))
 
-    def get_logger(self):
+    def get_logger(self) -> Logger:
         return self.logger
 
     @contextmanager
@@ -191,27 +197,9 @@ class JobBoardBaseScraper(ABC):
             yield db
         finally:
             db.close_connection()
-    
-    def check_proxies(self, proxy_urls: list[str]) -> list[str]:
-        ok_proxies: list[str] = []
-        for proxy_url in proxy_urls:
-            try:
-                response = requests.get(
-                    self.config.main_url,
-                    impersonate='chrome',
-                    proxies={"http": proxy_url, "https": proxy_url}
-                )
-                if response.status_code == 200:
-                    ok_proxies.append(proxy_url)
-                else:
-                    self.logger.error(f"Proxy {proxy_url} busted on {self.config.main_url}")
-            except Exception as e:
-                self.logger.error(f"Proxy {proxy_url} busted or invalid format: {str(e)}")
-                self.metrics.add_error(e)
-        return ok_proxies
 
     @abstractmethod
-    def fetch_job_details(self, posting_tree: HtmlElement, posting_url: str) -> Any:
+    def fetch_job_details(self, posting_tree: HtmlElement, posting_url: str) -> BaseModel:
         ...
 
     def construct_page_url(self, category: str, page: int) -> str:

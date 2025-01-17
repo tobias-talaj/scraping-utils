@@ -1,17 +1,23 @@
 import time
-import string
-import random
 import logging
 import traceback
 from pathlib import Path
 from functools import wraps
+from typing import Callable, Optional, Any
 from logging.handlers import RotatingFileHandler
+from logging import Logger, Formatter, StreamHandler
 
+import requests
 from lxml import etree
 from prefect import get_run_logger
+from prefect.logging import get_run_logger
 
 
-def setup_logging(log_file_name='scraper.log', log_level=logging.INFO, use_prefect=False):
+def setup_logging(
+    log_file_name: str = 'scraper.log',
+    log_level: int = logging.INFO,
+    use_prefect: bool = False
+) -> Logger | Any:
     if use_prefect:
         return get_run_logger()
     
@@ -35,7 +41,11 @@ def setup_logging(log_file_name='scraper.log', log_level=logging.INFO, use_prefe
     return logger
 
 
-def retry(max_retries=3, delay=5, logger_func=None):
+def retry(
+    max_retries: int = 3,
+    delay: int = 5,
+    logger_func: Optional[Callable[[], Logger]] = None
+) -> Callable:
     def decorator(func):
         wraps(func)
         def wrapper(*args, **kwargs):
@@ -57,15 +67,31 @@ def retry(max_retries=3, delay=5, logger_func=None):
     return decorator
 
 
-def save_failed_html(tree, filename):
+def save_failed_html(tree: etree._Element, filename: str) -> None:
     html_string = etree.tostring(tree, pretty_print=True, method="html", encoding="unicode")
     with open(filename, 'w', encoding='utf-8') as f:
         f.write(html_string)
 
 
-def random_hex(length):
-    return ''.join(random.choices(string.hexdigits.lower(), k=length))
-
-
-def random_base64(length):
-    return ''.join(random.choices(string.ascii_letters + string.digits + '+/', k=length))
+def check_proxies(
+    main_url: str,
+    proxy_urls: list[str],
+    logger: Logger,
+    metrics: Any
+) -> list[str]:
+    ok_proxies: list[str] = []
+    for proxy_url in proxy_urls:
+        try:
+            response = requests.get(
+                main_url,
+                impersonate='chrome',
+                proxies={"http": proxy_url, "https": proxy_url}
+            )
+            if response.status_code == 200:
+                ok_proxies.append(proxy_url)
+            else:
+                logger.error(f"Proxy {proxy_url} busted on {main_url}")
+        except Exception as e:
+            logger.error(f"Proxy {proxy_url} busted or invalid format: {str(e)}")
+            metrics.add_error(e)
+    return ok_proxies

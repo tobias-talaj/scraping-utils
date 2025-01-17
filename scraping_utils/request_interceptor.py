@@ -10,8 +10,10 @@ import time
 import socket
 import asyncio
 import threading
-from scraping_utils import setup_logging
+from logging import Logger
+from typing import Callable
 
+import pyautogui
 from mitmproxy import http
 from mitmproxy.options import Options
 from mitmproxy.tools.dump import DumpMaster
@@ -51,7 +53,7 @@ class HeaderSaver:
         else:
             return request.content.decode('utf-8')
 
-    def get_captured_data(self) -> dict:
+    def get_captured_data(self) -> dict[str, list[dict]]:
         return {
             "requests": self.requests,
             "responses": self.responses
@@ -59,8 +61,13 @@ class HeaderSaver:
 
 
 class MitmProxyController:
-    def __init__(self, name, host: str = '0.0.0.0', port: int = 8080):
-        self.logger = setup_logging(f"mitmproxy_{name}.log")
+    def __init__(
+        self,
+        logger: Logger,
+        host: str = '0.0.0.0',
+        port: int = 8080
+    ) -> None:
+        self.logger = logger
         self.host = host
         self.port = port
         self.master = None
@@ -120,3 +127,60 @@ class MitmProxyController:
     def word_in_string(self, word: str, text: str) -> bool:
         pattern = fr'\b{re.escape(word)}\b'
         return bool(re.search(pattern, text, re.IGNORECASE))
+
+
+def cast_to_dict(input: list | dict | str) -> dict:
+    if isinstance(input, list):
+        input = input[0]
+    if isinstance(input, dict):
+        return input
+    try:
+        input = json.loads(input)
+        return input
+    except Exception:
+        return {}
+
+
+def extract_credentials(
+    logger: Logger,
+    browser: str,
+    keys: list[str],
+    sequence: Callable[[], None]
+) -> dict:
+    proxy_controller = MitmProxyController(logger=logger, host='127.0.0.1', port=8080)
+    proxy_controller.start()
+
+    try:
+        pyautogui.PAUSE = 0.5
+        pyautogui.press('win')
+        pyautogui.write('terminal')
+        pyautogui.press('enter')
+        time.sleep(1)
+        pyautogui.write(f'{browser} --proxy-server="http://127.0.0.1:8080"')
+        pyautogui.press('enter')
+        pyautogui.hotkey('ctrl', 'l')
+
+        sequence()
+
+        time.sleep(5)
+        pyautogui.hotkey('alt', 'f4')
+
+        credentials = {}
+        matching_requests = proxy_controller.find_requests_with_keywords(keys)
+        for req in matching_requests:
+            headers = cast_to_dict(req.get('headers'))
+            payload = cast_to_dict(req.get('payload'))
+            headers = {k.lower(): v for k, v in headers.items()}
+            payload = {k.lower(): v for k, v in payload.items()}
+            keys = [k.lower() for k in keys]
+
+            for k in keys:
+                if k in payload:
+                    credentials[k] = payload[k]
+                elif k in headers:
+                    credentials[k] = headers[k]
+        return credentials
+
+    finally:
+        proxy_controller.stop()
+        pyautogui.hotkey('alt', 'f4')

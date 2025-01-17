@@ -1,24 +1,22 @@
-from .core import (
+from .core_utils import (
     setup_logging,
     retry,
     save_failed_html,
-    random_hex,
-    random_base64
+    check_proxies
 )
-from .mongodb import MongoDBConnection
-from .base_scraper import JobBoardBaseScraper, ScraperConfig
-from .mitm_proxy import MitmProxyController
-from .credentials_extractor import extract_credentials
+from .mongodb_client import MongoDBConnection
+from .base_scraper import CurlCffiJobBoardBaseScraper, ScraperConfig, ScrapingMetrics
+from .request_interceptor import MitmProxyController, extract_credentials
 
 __all__ = [
     'setup_logging',
     'retry',
     'save_failed_html',
-    'random_hex',
-    'random_base64',
     'MongoDBConnection',
-    'JobBoardBaseScraper',
+    'CurlCffiJobBoardBaseScraper',
     'ScraperConfig',
     'MitmProxyController',
-    'extract_credentials'
+    'extract_credentials',
+    'check_proxies',
+    'ScrapingMetrics'
 ]
