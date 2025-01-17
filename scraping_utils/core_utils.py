@@ -7,8 +7,8 @@ from typing import Callable, Optional, Any
 from logging.handlers import RotatingFileHandler
 from logging import Logger, Formatter, StreamHandler
 
-import requests
 from lxml import etree
+from curl_cffi import requests
 from prefect import get_run_logger
 from prefect.logging import get_run_logger
 
@@ -94,4 +94,6 @@ def check_proxies(
         except Exception as e:
             logger.error(f"Proxy {proxy_url} busted or invalid format: {str(e)}")
             metrics.add_error(e)
+    if not ok_proxies:
+        raise PermissionError(f"All proxies are blocked by {main_url}")
     return ok_proxies
